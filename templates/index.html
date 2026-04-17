@@ -23,18 +23,18 @@
     </div>
 
     <div class="content-wrapper">
-        <h1>TENCUACA<br>(Tentukan Cuaca)</h1>
+        <h1>TENCUACA<br>"Tentukan Cuaca"</h1>
         
         <div class="container">
             <p>Unggah gambar cuaca atau lingkungan untuk diprediksi (Cloudy, Rain, Shine).</p>
             
-            <label class="upload-area" for="fileInput">
+            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
                 <p id="upload-text">☁️ Klik untuk memilih gambar dari perangkat Anda ☀️</p>
-                <input type="file" id="fileInput" style="display: none;" accept="image/*" onchange="previewImage(event)">
+                <input type="file" id="fileInput" style="display: none;" accept="image/jpeg, image/png, image/jpg" onchange="previewImage(event)">
                 <img id="preview" alt="Preview Gambar">
-            </label>
+            </div>
 
-            <button id="predictBtn" onclick="processImage()" disabled>Periksa Cuaca</button>
+            <button id="predictBtn" onclick="processImage()" disabled>Prediksi Cuaca</button>
 
             <div id="result-box"></div>
         </div>
@@ -70,7 +70,7 @@
             const resultBox = document.getElementById('result-box');
             
             btn.disabled = true;
-            btn.innerText = "Menganalisis Cuaca...";
+            btn.innerText = "Menganalisis Langit...";
             resultBox.style.display = 'none';
             resultBox.className = '';
 
