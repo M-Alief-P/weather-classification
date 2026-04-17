@@ -24,10 +24,10 @@
 
     <div class="content-wrapper">
         <h1>TENCUACA<br>(Tentukan Cuaca)</h1>
-        <h3>Tentukan cuaca dengan klasifikasi cuaca cerdas</h3>
+        <h3>Periksa kondisi cuaca dengan klasifikasi cuaca cerdas</h3>
         
         <div class="container">
-            <p>Unggah gambar cuaca atau lingkungan untuk diprediksi (Cloudy, Rain, Shine).</p>
+            <p>Unggah gambar cuaca atau lingkungan untuk diprediksi (Berawan, Hujan, Cerah).</p>
             
             <div class="upload-area" onclick="document.getElementById('fileInput').click()">
                 <p id="upload-text">☁️ Klik untuk memilih gambar dari perangkat Anda ☀️</p>
@@ -35,7 +35,7 @@
                 <img id="preview" alt="Preview Gambar">
             </div>
 
-            <button id="predictBtn" onclick="processImage()" disabled>Prediksi Cuaca</button>
+            <button id="predictBtn" onclick="processImage()" disabled>Periksa Cuaca</button>
 
             <div id="result-box"></div>
         </div>
@@ -71,7 +71,7 @@
             const resultBox = document.getElementById('result-box');
             
             btn.disabled = true;
-            btn.innerText = "Menganalisis Langit...";
+            btn.innerText = "Menganalisis Cuaca...";
             resultBox.style.display = 'none';
             resultBox.className = '';
 
