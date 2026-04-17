@@ -64,14 +64,14 @@ def index():
 @app.route('/predict', methods=['POST'])
 def predict():
     if 'file' not in request.files:
-        return jsonify({'error': 'Tidak ada file yang diunggah'})
+        return jsonify({'status': 'error', 'message': 'Tidak ada file yang diunggah'})
     
     file = request.files['file']
     if file.filename == '':
-        return jsonify({'error': 'Tidak ada file yang dipilih'})
-    
-    # Simpan file sementara
-    temp_path = "temp_upload.jpg"
+        return jsonify({'status': 'error', 'message': 'File tidak valid'})
+        
+    # UBAH BAGIAN INI: Simpan ke folder /tmp/ yang diizinkan oleh Vercel
+    temp_path = os.path.join('/tmp', 'temp_img.jpg')
     file.save(temp_path)
     
     try:
