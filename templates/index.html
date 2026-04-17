@@ -28,11 +28,11 @@
         <div class="container">
             <p>Unggah gambar cuaca atau lingkungan untuk diprediksi (Cloudy, Rain, Shine).</p>
             
-            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+            <label class="upload-area" for="fileInput">
                 <p id="upload-text">☁️ Klik untuk memilih gambar dari perangkat Anda ☀️</p>
-                <input type="file" id="fileInput" style="display: none;" accept="image/jpeg, image/png, image/jpg" onchange="previewImage(event)">
+                <input type="file" id="fileInput" style="display: none;" accept="image/*" onchange="previewImage(event)">
                 <img id="preview" alt="Preview Gambar">
-            </div>
+            </label>
 
             <button id="predictBtn" onclick="processImage()" disabled>Periksa Cuaca</button>
 
