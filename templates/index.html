@@ -1,108 +1,106 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sistem Klasifikasi Cuaca</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
+import os
+import cv2
+import numpy as np
+import joblib
+from flask import Flask, request, jsonify, render_template
+from skimage.feature import graycomatrix, graycoprops
+from skimage.measure import shannon_entropy
 
-    <div class="sky-bg">
-        <div class="sun"></div>
+app = Flask(__name__)
+
+# --- 1. MEMUAT MODEL & SCALER ---
+try:
+    model = joblib.load('net_cuaca_python_v2.pkl')
+    scaler = joblib.load('scaler_cuaca_python_v2.pkl')
+    classList = joblib.load('classList_python.pkl')
+    print("Model berhasil dimuat!")
+except Exception as e:
+    print("Error memuat model. Pastikan file .pkl ada di direktori yang sama.")
+    print(e)
+
+# --- 2. FUNGSI EKSTRAKSI FITUR (Sama dengan Pelatihan) ---
+def extract_features(image_path):
+    # Baca gambar
+    img = cv2.imread(image_path)
+    if img is None:
+        raise ValueError("Gambar tidak dapat dibaca")
         
-        <div class="wind wind1"></div>
-        <div class="wind wind2"></div>
-        <div class="wind wind3"></div>
-        <div class="wind wind4"></div>
+    # Resize ke 256x256
+    img = cv2.resize(img, (256, 256))
+    
+    # Konversi BGR (OpenCV) ke RGB
+    rgb_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    
+    # Konversi ke Grayscale untuk GLCM dan Entropi
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    
+    # Rata-rata RGB
+    MeanR = np.mean(rgb_img[:, :, 0])
+    MeanG = np.mean(rgb_img[:, :, 1])
+    MeanB = np.mean(rgb_img[:, :, 2])
+    
+    # GLCM Fitur Tekstur
+    angles = [0, np.pi/4, np.pi/2, 3*np.pi/4]
+    glcm = graycomatrix(gray, distances=[1], angles=angles, symmetric=True, normed=True)
+    
+    CiriCON = np.mean(graycoprops(glcm, 'contrast'))
+    CiriCOR = np.mean(graycoprops(glcm, 'correlation'))
+    CiriASM = np.mean(graycoprops(glcm, 'energy')) 
+    CiriIDM = np.mean(graycoprops(glcm, 'homogeneity')) 
+    
+    # Entropy
+    CiriENTR = shannon_entropy(gray)
+    
+    # Gabungkan menjadi 1 array 2D untuk scaler
+    features = np.array([[MeanR, MeanG, MeanB, CiriENTR, CiriASM, CiriCON, CiriCOR, CiriIDM]])
+    return features
 
-        <div class="cloud cloud1"></div>
-        <div class="cloud cloud2"></div>
-        <div class="cloud cloud3"></div>
-        <div class="cloud cloud4"></div>
-    </div>
+# --- 3. ROUTING WEB ---
+@app.route('/')
+def index():
+    # Menampilkan halaman utama
+    return render_template('index.html')
 
-    <div class="content-wrapper">
-        <h1>Klasifikasi Cuaca Cerdas</h1>
+@app.route('/predict', methods=['POST'])
+def predict():
+    if 'file' not in request.files:
+        return jsonify({'status': 'error', 'message': 'Tidak ada file yang diunggah'})
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'status': 'error', 'message': 'File tidak valid'})
         
-        <div class="container">
-            <p>Unggah gambar cuaca atau lingkungan untuk diprediksi (Cloudy, Rain, Shine).</p>
-            
-            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
-                <p id="upload-text">☁️ Klik untuk memilih gambar dari perangkat Anda ☀️</p>
-                <input type="file" id="fileInput" style="display: none;" accept="image/jpeg, image/png, image/jpg" onchange="previewImage(event)">
-                <img id="preview" alt="Preview Gambar">
-            </div>
+    # UBAH BAGIAN INI: Simpan ke folder /tmp/ yang diizinkan oleh Vercel
+    temp_path = os.path.join('/tmp', 'temp_img.jpg')
+    file.save(temp_path)
+    
+    try:
+        # Ekstraksi fitur
+        features = extract_features(temp_path)
+        
+        # Normalisasi fitur menggunakan parameter data latih
+        features_norm = scaler.transform(features)
+        
+        # Prediksi menggunakan JST (MLPClassifier)
+        prediction = model.predict(features_norm)
+        predicted_class_index = int(prediction[0])
+        
+        # Ambil nama kelas (Cloudy, Rain, Shine)
+        result_class = classList[predicted_class_index]
+        
+        # Hapus file sementara
+        os.remove(temp_path)
+        
+        return jsonify({
+            'status': 'success', 
+            'prediction': result_class
+        })
+        
+    except Exception as e:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+        return jsonify({'status': 'error', 'message': str(e)})
 
-            <button id="predictBtn" onclick="processImage()" disabled>Prediksi Cuaca</button>
-
-            <div id="result-box"></div>
-        </div>
-    </div>
-
-    <script>
-        let selectedFile = null;
-
-        function previewImage(event) {
-            const file = event.target.files[0];
-            if (file) {
-                selectedFile = file;
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const img = document.getElementById('preview');
-                    const text = document.getElementById('upload-text');
-                    
-                    img.src = e.target.result;
-                    img.style.display = 'block';
-                    text.style.display = 'none';
-                    
-                    document.getElementById('predictBtn').disabled = false;
-                    document.getElementById('result-box').style.display = 'none';
-                }
-                reader.readAsDataURL(file);
-            }
-        }
-
-        async function processImage() {
-            if (!selectedFile) return;
-
-            const btn = document.getElementById('predictBtn');
-            const resultBox = document.getElementById('result-box');
-            
-            btn.disabled = true;
-            btn.innerText = "Menganalisis Langit...";
-            resultBox.style.display = 'none';
-            resultBox.className = '';
-
-            const formData = new FormData();
-            formData.append('file', selectedFile);
-
-            try {
-                const response = await fetch('/predict', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const data = await response.json();
-
-                resultBox.style.display = 'block';
-                if (data.status === 'success') {
-                    resultBox.classList.add('success');
-                    resultBox.innerText = "☁️ Hasil: " + data.prediction;
-                } else {
-                    resultBox.classList.add('error');
-                    resultBox.innerText = "❌ Error: " + data.message;
-                }
-            } catch (error) {
-                resultBox.style.display = 'block';
-                resultBox.classList.add('error');
-                resultBox.innerText = "❌ Gagal terhubung ke server.";
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "Prediksi Cuaca";
-            }
-        }
-    </script>
-
-</body>
-</html>
+if __name__ == '__main__':
+    # Jalankan server
+    app.run(debug=True, port=5000)
