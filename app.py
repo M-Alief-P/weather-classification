@@ -71,7 +71,8 @@ def predict():
         return jsonify({'error': 'Tidak ada file yang dipilih'})
     
     # Simpan file sementara
-    temp_path = "temp_upload.jpg"
+    # UBAH BAGIAN INI: Simpan ke folder /tmp/ yang diizinkan oleh Vercel
+    temp_path = os.path.join('/tmp', 'temp_upload.jpg')
     file.save(temp_path)
     
     try:
